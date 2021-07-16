@@ -1,14 +1,30 @@
 from rest_framework import generics
 from blog.models import Post
 from .serializers import PostSerializer
+from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAdminUser, DjangoModelPermissions, DjangoModelPermissionsOrAnonReadOnly, SAFE_METHODS, IsAuthenticatedOrReadOnly
 
 # Create your views here.
+class PostUserWritePermission(BasePermission):
+    # Custom Permissions
+    # https://www.django-rest-framework.org/api-guide/permissions/#custom-permissions
+    message = 'Editing posts is restricted to the author only.'
+
+    def has_object_permission(self, request, view, obj):
+        
+        if request.method in SAFE_METHODS:
+            return True
+        
+        return obj.author == request.user
+
+
 class PostList(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]  # IsAdminUser
     queryset = Post.postobjects.all()
     serializer_class = PostSerializer  # translate data into format which frontend can understand
 
 
-class PostDetail(generics.RetrieveDestroyAPIView):
+class PostDetail(generics.RetrieveUpdateDestroyAPIView, PostUserWritePermission):
+    permission_classes = [PostUserWritePermission]  # Custom Permission
     queryset = Post.postobjects.all()
     serializer_class = PostSerializer
 
